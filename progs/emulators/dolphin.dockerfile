@@ -16,8 +16,16 @@
   ADD https://github.com/dolphin-emu/dolphin.git /dolphin
   WORKDIR /dolphin
   
-  RUN --mount=type=cache,target=/root/.cache/ccache \
-    mkdir build && cd build && cmake -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache .. && make -j$(nproc) && ccache -svv
+  RUN --mount=type=cache,target=/root/.cache/ccache/ \
+<<EOT
+  mkdir build
+  cd build
+  cmake -D CMAKE_C_COMPILER_LAUNCHER=ccache -D   CMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+  make -j$(nproc)
+  ccache -p
+  ccache -svv
+EOT
 
   FROM scratch AS dolphin-dist
-  COPY --from=dolphinemu /dolphin .
+  COPY --from=dolphinemu /dolphin/build/ /build/
+  COPY --from=dolphinemu /dolphin/CMakeLists.txt .

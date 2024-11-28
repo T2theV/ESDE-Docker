@@ -49,16 +49,25 @@
   ninja-build \
   libdrm-dev \
   libgles2-mesa-dev \
-  ccache
+  ccache \
+  git \
+  ca-certificates \
+  perl
 
   WORKDIR /
   #download and extract
-  ADD https://download.qt.io/archive/qt/6.6/6.6.3/single/qt-everywhere-src-6.6.3.tar.xz /qt.tar.xz
-  RUN tar xf qt.tar.xz
+  RUN git clone --branch v6.7.3 https://code.qt.io/qt/qt5.git /qt
+  WORKDIR qt
   #install
-  WORKDIR /qt-everywhere-src-6.6.3
   RUN --mount=type=cache,id=qtcache,target=/root/.cache/ccache \
-    mkdir qt6_build && cd qt6_build && ../configure -- -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache && cmake --build . --parallel $(nproc)
+<<EOT bash
+  perl init-repository --module-subset  qtbase,qtmultimedia,qtdeclarative,qtsvg,qtshadertools  
+  mkdir qt6_build
+  cd qt6_build
+  ../configure -submodules qtbase,qtmultimedia,qtdeclarative,qtsvg,qtshadertools -- -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+  cmake --build . --parallel $(nproc)
+  find . -name "*.o" -type f -delete
+EOT
 
   FROM scratch AS qt-dist
-  COPY --from=qt-base /qt-everywhere-src-6.6.3  .
+  COPY --from=qt-base /qt  .
